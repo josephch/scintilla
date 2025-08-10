@@ -60,6 +60,10 @@ class UndoHistory {
 	int undoSequenceDepth;
 	int savePoint;
 	int tentativePoint;
+/* CHANGEBAR begin */
+	int savePointEffective;
+	int **changeActions;
+/* CHANGEBAR end */
 
 	void EnsureUndoRoom();
 
@@ -72,17 +76,27 @@ public:
 	void operator=(UndoHistory &&) = delete;
 	~UndoHistory();
 
-	const char *AppendAction(actionType at, Sci::Position position, const char *data, Sci::Position lengthData, bool &startSequence, bool mayCoalesce=true);
+/* CHANGEBAR begin */
+	const char *AppendAction(actionType at, Sci::Position position, const char *data, Sci::Position lengthData, bool &startSequence, char *persistantChanges, bool mayCoalesce=true);
+/* CHANGEBAR end */
 
 	void BeginUndoAction();
 	void EndUndoAction();
 	void DropUndoSequence();
 	void DeleteUndoHistory();
 
+/* CHANGEBAR begin */
+	void DeleteChangeHistory();
+	void EnableChangeHistory(bool enable);
+/* CHANGEBAR end */
+
 	/// The save point is a marker in the undo stack where the container has stated that
 	/// the buffer was saved. Undo and redo can move over the save point.
 	void SetSavePoint() noexcept;
 	bool IsSavePoint() const noexcept;
+/* CHANGEBAR begin */
+	bool BeforeSavePointEffective(int action) const;
+/* CHANGEBAR end */
 
 	// Tentative actions are used for input composition so that it can be undone cleanly
 	void TentativeStart();
@@ -96,10 +110,17 @@ public:
 	int StartUndo();
 	const Action &GetUndoStep() const;
 	void CompletedUndoStep();
+/* CHANGEBAR begin */
+	char *GetChangesStep() const;
+/* CHANGEBAR end */
 	bool CanRedo() const noexcept;
 	int StartRedo();
 	const Action &GetRedoStep() const;
 	void CompletedRedoStep();
+
+/* CHANGEBAR begin */
+	int Edition() const;
+/* CHANGEBAR end */
 };
 
 /**
@@ -124,12 +145,14 @@ private:
 
 	bool UTF8LineEndOverlaps(Sci::Position position) const noexcept;
 	bool UTF8IsCharacterBoundary(Sci::Position position) const;
-	void ResetLineEnds();
+/* CHANGEBAR begin */
+	void ResetLineEnds(bool undoing);
+	/// Actions without undo
+	void BasicInsertString(Sci::Position position, const char *s, Sci::Position insertLength, bool undoing);
+	void BasicDeleteChars(Sci::Position position, Sci::Position deleteLength, bool undoing);
+/* CHANGEBAR end */
 	void RecalculateIndexLineStarts(Sci::Line lineFirst, Sci::Line lineLast);
 	bool MaintainingLineCharacterIndex() const noexcept;
-	/// Actions without undo
-	void BasicInsertString(Sci::Position position, const char *s, Sci::Position insertLength);
-	void BasicDeleteChars(Sci::Position position, Sci::Position deleteLength);
 
 public:
 
@@ -166,8 +189,10 @@ public:
 	Sci::Position IndexLineStart(Sci::Line line, int lineCharacterIndex) const noexcept;
 	Sci::Line LineFromPosition(Sci::Position pos) const noexcept;
 	Sci::Line LineFromPositionIndex(Sci::Position pos, int lineCharacterIndex) const noexcept;
-	void InsertLine(Sci::Line line, Sci::Position position, bool lineStart);
-	void RemoveLine(Sci::Line line);
+/* CHANGEBAR begin */
+	void InsertLine(Sci::Line line, Sci::Position position, bool lineStart, int edition, bool undoing);
+	void RemoveLine(Sci::Line line, bool undoing);
+/* CHANGEBAR end */
 	const char *InsertString(Sci::Position position, const char *s, Sci::Position insertLength, bool &startSequence);
 
 	/// Setting styles for positions outside the range of the buffer is safe and has no effect.
@@ -192,12 +217,22 @@ public:
 	bool TentativeActive() const noexcept;
 	int TentativeSteps() noexcept;
 
+/* CHANGEBAR begin */
+	void EnableChangeCollection(bool changesCollecting_);
+	bool SetChangeCollection(bool collectChange);
+	void DeleteChangeCollection();
+	int GetChanged(int line) const;
+	int GetChangesEdition() const;
+/* CHANGEBAR end */
+
 	bool SetUndoCollection(bool collectUndo);
 	bool IsCollectingUndo() const noexcept;
 	void BeginUndoAction();
 	void EndUndoAction();
 	void AddUndoAction(Sci::Position token, bool mayCoalesce);
-	void DeleteUndoHistory();
+/* CHANGEBAR begin */
+	void DeleteUndoHistory(bool collectChangeHistory);
+/* CHANGEBAR end */
 
 	/// To perform an undo, StartUndo is called to retrieve the number of steps, then UndoStep is
 	/// called that many times. Similarly for redo.

@@ -57,6 +57,12 @@ public:
 	DISTANCE Find(STYLE value, DISTANCE start) const noexcept;
 
 	void Check() const;
+
+/* CHANGEBAR begin */
+	char *PersistantForm() const;
+	void FromPersistant(const char *form);
+	static bool PersistantSame(const char *form1, const char *form2);
+/* CHANGEBAR end */
 };
 
 }

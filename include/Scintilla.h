@@ -150,6 +150,10 @@ typedef sptr_t (*SciFnDirect)(sptr_t ptr, unsigned int iMessage, uptr_t wParam, 
 #define SC_MARK_BOOKMARK 31
 #define SC_MARK_VERTICALBOOKMARK 32
 #define SC_MARK_CHARACTER 10000
+/* CHANGEBAR begin */
+#define SC_MARKNUM_CHANGEUNSAVED 23
+#define SC_MARKNUM_CHANGESAVED 24
+/* CHANGEBAR end */
 #define SC_MARKNUM_FOLDEREND 25
 #define SC_MARKNUM_FOLDEROPENMID 26
 #define SC_MARKNUM_FOLDERMIDTAIL 27
@@ -157,7 +161,9 @@ typedef sptr_t (*SciFnDirect)(sptr_t ptr, unsigned int iMessage, uptr_t wParam, 
 #define SC_MARKNUM_FOLDERSUB 29
 #define SC_MARKNUM_FOLDER 30
 #define SC_MARKNUM_FOLDEROPEN 31
-#define SC_MASK_FOLDERS 0xFE000000
+/* CHANGEBAR begin */
+#define SC_MASK_FOLDERS 0xFF800000
+/* CHANGEBAR end */
 #define SCI_MARKERDEFINE 2040
 #define SCI_MARKERSETFORE 2041
 #define SCI_MARKERSETBACK 2042
@@ -180,6 +186,9 @@ typedef sptr_t (*SciFnDirect)(sptr_t ptr, unsigned int iMessage, uptr_t wParam, 
 #define SC_MARGIN_TEXT 4
 #define SC_MARGIN_RTEXT 5
 #define SC_MARGIN_COLOUR 6
+/* CHANGEBAR begin */
+#define SC_MARGIN_CHANGED 7
+/* CHANGEBAR end */
 #define SCI_SETMARGINTYPEN 2240
 #define SCI_GETMARGINTYPEN 2241
 #define SCI_SETMARGINWIDTHN 2242
@@ -314,6 +323,10 @@ typedef sptr_t (*SciFnDirect)(sptr_t ptr, unsigned int iMessage, uptr_t wParam, 
 #define INDICATOR_IME 32
 #define INDICATOR_IME_MAX 35
 #define INDICATOR_MAX 35
+#define INDIC_CONTAINER 8
+/* C::B begin INDIC_HIGHLIGHT */
+#define INDIC_HIGHLIGHT 31 // please change also in wxscintilla.h !!
+/* C::B end */
 #define SCI_INDICSETSTYLE 2080
 #define SCI_INDICGETSTYLE 2081
 #define SCI_INDICSETFORE 2082
@@ -491,6 +504,10 @@ typedef sptr_t (*SciFnDirect)(sptr_t ptr, unsigned int iMessage, uptr_t wParam, 
 #define SCI_VISIBLEFROMDOCLINE 2220
 #define SCI_DOCLINEFROMVISIBLE 2221
 #define SCI_WRAPCOUNT 2235
+/* CHANGEBAR begin */
+#define SCI_SETCHANGECOLLECTION 2950
+#define SCI_GETCHANGEDLINE 2951
+/* CHANGEBAR end */
 #define SC_FOLDLEVELBASE 0x400
 #define SC_FOLDLEVELWHITEFLAG 0x1000
 #define SC_FOLDLEVELHEADERFLAG 0x2000

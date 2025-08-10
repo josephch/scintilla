@@ -1479,10 +1479,19 @@ void SCI_METHOD LexerCPP::Fold(Sci_PositionU startPos, Sci_Position length, int 
 			} else {
 				if ((ch == '/') && (chNext == '/')) {
 					const char chNext2 = styler.SafeGetCharAt(i + 2);
+/* C::B begin */
+					const char chNext3 = styler.SafeGetCharAt(i + 3);
+/* C::B end */
 					if (chNext2 == '{') {
 						levelNext++;
 					} else if (chNext2 == '}') {
 						levelNext--;
+/* C::B begin */
+					} else if (chNext2 == '(' && chNext3 == '*') {
+					    levelNext++;
+					} else if (chNext2 == '*' && chNext3 == ')') {
+					    levelNext--;
+/* C::B end */
 					}
 				}
 			}

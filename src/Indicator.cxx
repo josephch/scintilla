@@ -260,6 +260,17 @@ void Indicator::Draw(Surface *surface, const PRectangle &rc, const PRectangle &r
 			surface->Polygon(pts, Sci::size(pts), sacDraw.fore, sacDraw.fore);
 		}
 		break;
+/* C::B begin INDIC_HIGHLIGHT */
+		case INDIC_HIGHLIGHT:
+		{
+			PRectangle rcBox = rcLine;
+			rcBox.top = rcLine.top + 1;
+			rcBox.left = rc.left;
+			rcBox.right = rc.right;
+			surface->AlphaRectangle(rcBox, 1, sacDraw.fore, 100, sacDraw.fore, 255, 0);
+		}
+		break;
+/* C::B end */
 
 	default:
 		// Either INDIC_PLAIN or unknown
