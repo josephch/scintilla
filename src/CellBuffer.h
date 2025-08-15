@@ -86,7 +86,7 @@ public:
 	void DeleteUndoHistory();
 
 /* CHANGEBAR begin */
-	void DeleteChangeHistory();
+	void DeleteChangeHistory() noexcept;
 	void EnableChangeHistory(bool enable);
 /* CHANGEBAR end */
 

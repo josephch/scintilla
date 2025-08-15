@@ -314,7 +314,8 @@ template class Scintilla::RunStyles<ptrdiff_t, char>;
 #endif
 
 /* CHANGEBAR begin */
-char *RunStyles::PersistantForm() const {
+template <typename DISTANCE, typename STYLE>
+char *RunStyles<DISTANCE, STYLE>::PersistantForm() const {
     int len = starts->Partitions();
     char *form = new char[(len * 2 + 1) * sizeof(int)];
     int *data = reinterpret_cast<int *>(form);
@@ -326,7 +327,8 @@ char *RunStyles::PersistantForm() const {
     return form;
 }
 
-void RunStyles::FromPersistant(const char *form) {
+template <typename DISTANCE, typename STYLE>
+void RunStyles<DISTANCE, STYLE>::FromPersistant(const char *form) {
     DeleteAll();
     const int *data = reinterpret_cast<const int *>(form);
     int len = data[0];
@@ -342,7 +344,8 @@ void RunStyles::FromPersistant(const char *form) {
     }
 }
 
-bool RunStyles::PersistantSame(const char *form1, const char *form2) {
+template <typename DISTANCE, typename STYLE>
+bool RunStyles<DISTANCE, STYLE>::PersistantSame(const char *form1, const char *form2) {
     const int *data1 = reinterpret_cast<const int *>(form1);
     const int *data2 = reinterpret_cast<const int *>(form2);
     if (data1[0] != data2[0])

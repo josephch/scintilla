@@ -14,6 +14,7 @@
  * A Line is a document or screen line.
  */
 
+#include <cstddef>
 namespace Sci {
 
 typedef ptrdiff_t Position;

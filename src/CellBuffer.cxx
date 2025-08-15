@@ -80,6 +80,16 @@ public:
 	virtual bool ReleaseLineCharacterIndex(int lineCharacterIndex) = 0;
 	virtual Sci::Position IndexLineStart(Sci::Line line, int lineCharacterIndex) const noexcept = 0;
 	virtual Sci::Line LineFromPositionIndex(Sci::Position pos, int lineCharacterIndex) const noexcept = 0;
+
+/* CHANGEBAR begin */
+	virtual void EnableChangeCollection(bool changesCollecting_) = 0;
+	virtual void DeleteChangeCollection() = 0;
+	virtual int GetChanged(Sci::Line line) const = 0;
+	virtual int GetChangesEdition() const = 0;
+	virtual void SetSavePoint() = 0;
+	virtual char *PersistantForm() const = 0;
+	virtual void SetChanges(const char *changesState) = 0;
+/* CHANGEBAR end */
 	virtual ~ILineVector() {}
 };
 
@@ -89,7 +99,7 @@ public:
 #include "RunStyles.h"
 class LineChanges {
 	bool collecting;
-	RunStyles state;
+	Scintilla::RunStyles<int,int> state;
 	int edition;
 public:
 	LineChanges() : collecting(0), edition(0) {
@@ -121,7 +131,7 @@ public:
 		if (collecting && !undoing) {
 			int position = line;
 			int fillLength = 1;
-			if (state.FillRange(position, edition, fillLength)) {
+			if (state.FillRange(position, edition, fillLength).changed) {
 				if (fillLength > 0) {
 					AdvanceEdition();
 				}
@@ -134,7 +144,7 @@ public:
 			state.InsertSpace(line, 1);
 			int linePosition = line;
 			int fillLength = 1;
-			if (state.FillRange(linePosition, edition, fillLength))
+			if (state.FillRange(linePosition, edition, fillLength).changed)
 				AdvanceEdition();
 		}
 	}
@@ -157,7 +167,7 @@ public:
 		if (collecting) {
 			int position = 0;
 			int length = state.Length();
-			if (state.FillRange(position, 0, length))
+			if (state.FillRange(position, 0, length).changed)
 				AdvanceEdition();
 		}
 	}
@@ -269,7 +279,7 @@ public:
 /* CHANGEBAR end */
 	}
 /* CHANGEBAR begin */
-	void InsertLine(Sci::Line line, Sci::Position position, bool lineStart, int edition, bool undoing) override {
+	void InsertLine(Sci::Line line, Sci::Position position, bool lineStart, int edition, bool undoing) noexcept override {
 /* CHANGEBAR end */
 		const POS lineAsPos = static_cast<POS>(line);
 		starts.InsertPartition(lineAsPos, static_cast<POS>(position));
@@ -383,32 +393,32 @@ public:
 	}
 
 /* CHANGEBAR begin */
-	void LineVector::EnableChangeCollection(bool changesCollecting_) {
+	void EnableChangeCollection(bool changesCollecting_) {
 		DeleteChangeCollection();
 		changes.EnableChangeCollection(changesCollecting_, Lines());
 	}
 
-	void LineVector::DeleteChangeCollection() {
+	void DeleteChangeCollection() {
 		changes.ClearChanged();
 	}
 
-	int LineVector::GetChanged(Sci::Line line) const {
+	int GetChanged(Sci::Line line) const {
 		return changes.GetChanged(line);
 	}
 
-	int LineVector::GetChangesEdition() const {
+	int GetChangesEdition() const {
 		return changes.GetEdition();
 	}
 
-	void LineVector::SetSavePoint() {
+	void SetSavePoint() {
 		changes.AdvanceEdition();
 	}
 
-	char *LineVector::PersistantForm() const {
+	char *PersistantForm() const {
 		return changes.PersistantForm();
 	}
 
-	void LineVector::SetChanges(const char *changesState) {
+	void SetChanges(const char *changesState) {
 		changes.SetChanges(changesState);
 	}
 /* CHANGEBAR end */
@@ -660,7 +670,7 @@ void UndoHistory::EnableChangeHistory(bool enable) {
 }
 /* CHANGEBAR end */
 
-void UndoHistory::SetSavePoint() {
+void UndoHistory::SetSavePoint() noexcept{
 	savePoint = currentAction;
 /* CHANGEBAR begin */
 	savePointEffective = currentAction;
@@ -846,7 +856,7 @@ const char *CellBuffer::InsertString(Sci::Position position, const char *s, Sci:
 			// Save into the undo/redo stack, but only the characters - not the formatting
 			// This takes up about half load time
 /* CHANGEBAR begin */
-			char *persistantForm = lv.PersistantForm();
+			char *persistantForm = plv->PersistantForm();
 			data = uh.AppendAction(insertAction, position, s, insertLength, startSequence, persistantForm);
 /* CHANGEBAR end */
 		}
@@ -900,7 +910,7 @@ const char *CellBuffer::DeleteChars(Sci::Position position, Sci::Position delete
 			// The gap would be moved to position anyway for the deletion so this doesn't cost extra
 			data = substance.RangePointer(position, deleteLength);
 /* CHANGEBAR begin */
-			char *persistantForm = lv.PersistantForm();
+			char *persistantForm = plv->PersistantForm();
 			data = uh.AppendAction(removeAction, position, data, deleteLength, startSequence, persistantForm);
 /* CHANGEBAR end */
 		}
@@ -1022,7 +1032,7 @@ bool CellBuffer::HasStyles() const noexcept {
 void CellBuffer::SetSavePoint() {
 	uh.SetSavePoint();
 /* CHANGEBAR begin */
-	lv.SetSavePoint();
+	plv->SetSavePoint();
 /* CHANGEBAR end */
 }
 
@@ -1221,7 +1231,7 @@ void CellBuffer::BasicInsertString(Sci::Position position, const char *s, Sci::P
 	const bool atLineStart = plv->LineStart(lineInsert-1) == position;
 	// Point all the lines after the insertion point further along in the buffer
 /* CHANGEBAR begin */
-	bool atLineEnd = (lv.LineStart(lineInsert) == position+1) || atFileEnd;
+	bool atLineEnd = (plv->LineStart(lineInsert) == position+1) || atFileEnd;
 	bool lineUnchanged = (atLineStart && (s[insertLength-1] == '\n')) ||
 		(atLineEnd && (s[0] == '\r' || s[0] == '\n'));
 	plv->InsertText(lineInsert-1, insertLength, uh.Edition(), undoing, lineUnchanged);
@@ -1328,7 +1338,7 @@ void CellBuffer::BasicDeleteChars(Sci::Position position, Sci::Position deleteLe
 		// than to delete each line.
 		plv->Init();
 /* CHANGEBAR begin */
-		lv.InsertText(0, 0, uh.Edition(), undoing, false);
+		plv->InsertText(0, 0, uh.Edition(), undoing, false);
 /* CHANGEBAR end */
 	} else {
 		// Have to fix up line positions before doing deletion as looking at text in buffer
@@ -1337,7 +1347,7 @@ void CellBuffer::BasicDeleteChars(Sci::Position position, Sci::Position deleteLe
 		const Sci::Line linePosition = plv->LineFromPosition(position);
 		Sci::Line lineRemove = linePosition + 1;
 /* CHANGEBAR begin */
-		bool atLineEnd = (lv.LineStart(lineRemove) == position+1);
+		bool atLineEnd = (plv->LineStart(lineRemove) == position+1);
 		char chAfter = substance.ValueAt(position + deleteLength);
 		bool lineUnchanged = (atLineEnd && (chAfter == '\r' || chAfter == '\n'));
 		plv->InsertText(lineRemove-1, - (deleteLength), uh.Edition(), undoing, lineUnchanged);
@@ -1426,7 +1436,7 @@ void CellBuffer::BasicDeleteChars(Sci::Position position, Sci::Position deleteLe
 			RemoveLine(lineRemove - 1, undoing);
 /* CHANGEBAR end */
 			plv->SetLineStart(lineRemove - 1, position + 1);
-			lv.SetLineStart(lineRemove - 1, position + 1);
+			plv->SetLineStart(lineRemove - 1, position + 1);
 		}
 	}
 	substance.DeleteRange(position, deleteLength);
@@ -1459,7 +1469,7 @@ void CellBuffer::EndUndoAction() {
 void CellBuffer::AddUndoAction(Sci::Position token, bool mayCoalesce) {
 	bool startSequence;
 /* CHANGEBAR begin */
-	char *persistantForm = lv.PersistantForm();
+	char *persistantForm = plv->PersistantForm();
 	uh.AppendAction(containerAction, token, nullptr, 0, startSequence, persistantForm, mayCoalesce);
 /* CHANGEBAR end */
 }
@@ -1470,20 +1480,20 @@ void CellBuffer::DeleteUndoHistory(bool collectChangeHistory) {
 	uh.DeleteUndoHistory();
 /* CHANGEBAR begin */
 	uh.EnableChangeHistory(collectChangeHistory);
-	lv.EnableChangeCollection(collectChangeHistory);
+	plv->EnableChangeCollection(collectChangeHistory);
 /* CHANGEBAR end */
 }
 
 /* CHANGEBAR begin */
 bool CellBuffer::SetChangeCollection(bool collectChange) {
 	uh.EnableChangeHistory(collectChange);
-	lv.EnableChangeCollection(collectChange);
+	plv->EnableChangeCollection(collectChange);
 	return collectChange;
 }
 
 void CellBuffer::DeleteChangeCollection() {
 	uh.DeleteChangeHistory();
-	lv.DeleteChangeCollection();
+	plv->DeleteChangeCollection();
 }
 /* CHANGEBAR end */
 
@@ -1502,7 +1512,7 @@ const Action &CellBuffer::GetUndoStep() const {
 void CellBuffer::PerformUndoStep() {
 /* CHANGEBAR begin */
 	const char *changesState = uh.GetChangesStep();
-	lv.SetChanges(changesState);
+	plv->SetChanges(changesState);
 /* CHANGEBAR end */
 	const Action &actionStep = uh.GetUndoStep();
 	if (actionStep.at == insertAction) {
@@ -1547,14 +1557,14 @@ void CellBuffer::PerformRedoStep() {
 	uh.CompletedRedoStep();
 /* CHANGEBAR begin */
 	if (IsSavePoint()) {
-		lv.SetSavePoint();
+		plv->SetSavePoint();
 	}
 /* CHANGEBAR end */
 }
 
 /* CHANGEBAR begin */
 int CellBuffer::GetChanged(int line) const {
-	int changed = lv.GetChanged(line);
+	int changed = plv->GetChanged(line);
 	if (changed == 0)
 		return 0;
 	else if (uh.BeforeSavePointEffective(changed))
@@ -1564,6 +1574,6 @@ int CellBuffer::GetChanged(int line) const {
 }
 
 int CellBuffer::GetChangesEdition() const {
-    return lv.GetChangesEdition();
+    return plv->GetChangesEdition();
 }
 /* CHANGEBAR end */

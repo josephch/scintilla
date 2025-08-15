@@ -8,6 +8,14 @@
 #ifndef DOCUMENT_H
 #define DOCUMENT_H
 
+#include "CaseFolder.h"
+#include "CellBuffer.h"
+#include "CharClassify.h"
+#include "CharacterCategory.h"
+#include "ILexer.h"
+#include "ILoader.h"
+#include "Position.h"
+#include "Scintilla.h"
 namespace Scintilla {
 
 class DocWatcher;
